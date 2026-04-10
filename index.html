@@ -3,47 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Bill-Buster Pro | Point. Scan. Save.</title>
+    <title>Bill-Buster Private | Point. Scan. Save.</title>
     <link rel="stylesheet" href="style.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 <body>
-
     <div id="app-container">
         <video id="webcam" autoplay playsinline muted></video>
-
         <div id="hud">
             <div class="scanner-box"><div class="scan-line"></div></div>
-            
             <div class="info-panel">
-                <h1 class="brand">BILL-BUSTER PRO</h1>
-                <button id="start-btn">INITIALIZE TURBO AI</button>
-                
+                <h1 class="brand">BILL-BUSTER PRIVATE</h1>
+                <button id="start-btn">INITIALIZE AI</button>
                 <div id="results" class="hidden">
                     <h2 id="item-name">DETECTING...</h2>
                     <p id="item-cost">₹0.00 / hour</p>
-                    <small id="accuracy-note">Accurate Calibration Active</small>
                 </div>
-
                 <div class="controls">
-                    <button id="view-history">VIEW HISTORY</button>
+                    <button id="view-history">MY HISTORY</button>
                 </div>
             </div>
         </div>
-
         <div id="history-modal" class="modal hidden">
             <div class="modal-content">
-                <h3>Scan History (Saved to DB)</h3>
+                <h3>Your Private Scans</h3>
                 <ul id="history-list"></ul>
                 <button id="close-history">CLOSE</button>
             </div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>

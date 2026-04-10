@@ -1,18 +1,12 @@
-body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; position: fixed; }
+body, html { margin: 0; padding: 0; width: 100vw; height: 100dvh; background: #000; font-family: sans-serif; overflow: hidden; position: fixed; }
 #app-container { position: relative; width: 100%; height: 100%; }
 #webcam { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
 #hud { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
-
 .scanner-box { margin: auto; width: 250px; height: 250px; border: 2px solid #00ff88; box-shadow: 0 0 20px #00ff8866; position: relative; }
 .scan-line { width: 100%; height: 2px; background: #00ff88; position: absolute; animation: moveLine 2s infinite ease-in-out; }
 @keyframes moveLine { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
-
 .info-panel { background: rgba(0, 0, 0, 0.9); color: white; padding: 20px; text-align: center; border-top: 2px solid #00ff88; pointer-events: auto; }
-.brand { color: #00ff88; font-size: 1.1rem; letter-spacing: 2px; margin-bottom: 10px; }
-#item-cost { font-size: 2rem; color: #ffdd00; font-weight: bold; margin: 5px 0; }
 #start-btn, #view-history, #close-history { background: #00ff88; border: none; padding: 10px 20px; border-radius: 4px; font-weight: bold; cursor: pointer; margin: 5px; }
-
-/* Modal Styling */
 .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10; display: flex; align-items: center; justify-content: center; }
 .modal-content { background: #222; width: 85%; max-height: 70%; padding: 20px; border-radius: 10px; border: 1px solid #00ff88; overflow-y: auto; color: white; }
 #history-list { list-style: none; padding: 0; }
