@@ -1,65 +1,102 @@
+// 1. Firebase Configuration (REPLACE WITH YOURS)
+const firebaseConfig = {
+    apiKey: "AIzaSy...",
+    authDomain: "bill-buster.firebaseapp.com",
+    projectId: "bill-buster",
+    storageBucket: "bill-buster.appspot.com",
+    messagingSenderId: "12345",
+    appId: "1:12345:web:6789"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// 2. Element Selectors
 const video = document.getElementById('webcam');
-const statusText = document.getElementById('status');
 const startBtn = document.getElementById('start-btn');
 const resultsArea = document.getElementById('results');
 const itemName = document.getElementById('item-name');
 const itemCost = document.getElementById('item-cost');
+const historyModal = document.getElementById('history-modal');
+const historyList = document.getElementById('history-list');
 
 let model = undefined;
+let isDetecting = false;
 
+// 3. Logic & AI
 startBtn.addEventListener('click', async () => {
     startBtn.style.display = 'none';
-    statusText.innerText = "Turbo-Loading...";
-    // Force use of the Lite model for raw speed
+    await tf.setBackend('webgl');
     model = await cocoSsd.load({ base: 'mobilenet_v2' });
-    statusText.innerText = "Hyper-Scan Active";
     setupCamera();
 });
 
 async function setupCamera() {
-    const constraints = { 
-        video: { 
-            facingMode: "environment",
-            // DOWN-SAMPLING: Smaller resolution = Instant AI detection
-            width: 320, 
-            height: 240 
-        } 
-    };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment", width: 320, height: 240 } 
+    });
     video.srcObject = stream;
-    video.onloadedmetadata = () => {
-        video.play();
-        runDetection();
-    };
+    video.onloadedmetadata = () => { video.play(); requestAnimationFrame(runDetection); };
 }
 
 async function runDetection() {
-    if (model) {
-        // Reduced 'maxPossibilities' to 1 for the absolute fastest result
+    if (model && !isDetecting) {
+        isDetecting = true;
         const predictions = await model.detect(video, 1, 0.4);
-        
-        if (predictions.length > 0) {
-            processResult(predictions[0].class);
-        }
+        if (predictions.length > 0) processResult(predictions[0].class);
+        isDetecting = false;
     }
-    // Zero delay loop for maximum frame rate
     requestAnimationFrame(runDetection);
 }
 
 function processResult(label) {
-    const db = {
-        "tv": { w: 150, h: 5, n: "Television" },
-        "laptop": { w: 60, h: 8, n: "Laptop" },
-        "refrigerator": { w: 250, h: 24, n: "Fridge" },
-        "microwave": { w: 1000, h: 0.5, n: "Microwave" },
-        "cell phone": { w: 10, h: 3, n: "Phone" }
+    const appliances = {
+        "tv": { w: 100, n: "Smart TV" },
+        "laptop": { w: 65, n: "Work Laptop" },
+        "refrigerator": { w: 200, n: "Fridge (Inverter)" },
+        "microwave": { w: 1200, n: "Microwave" },
+        "airplane": { w: 75, n: "Ceiling Fan" },
+        "umbrella": { w: 75, n: "Ceiling Fan" }
     };
 
-    if (db[label]) {
-        const item = db[label];
-        const monthlyCost = Math.round((item.w * item.h * 30 / 1000) * 7);
+    if (appliances[label]) {
+        const item = appliances[label];
+        const hourlyRate = (item.w / 1000) * 7;
+        const costStr = hourlyRate.toFixed(2);
+
         resultsArea.classList.remove('hidden');
         itemName.innerText = item.n;
-        itemCost.innerText = `₹${monthlyCost} / month`;
+        itemCost.innerText = `₹${costStr} / hour`;
+
+        // Save to Database (Cloud Firestore)
+        saveToDB(item.n, costStr);
     }
 }
+
+async function saveToDB(name, cost) {
+    try {
+        await db.collection("scans").add({
+            device: name,
+            cost: cost,
+            time: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (e) { console.error(e); }
+}
+
+// 4. UI Functions
+document.getElementById('view-history').addEventListener('click', async () => {
+    historyList.innerHTML = "<li>Loading...</li>";
+    historyModal.classList.remove('hidden');
+    
+    const snapshot = await db.collection("scans").orderBy("time", "desc").limit(10).get();
+    historyList.innerHTML = "";
+    snapshot.forEach(doc => {
+        const data = doc.data();
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${data.device}</span> <strong>₹${data.cost}</strong>`;
+        historyList.appendChild(li);
+    });
+});
+
+document.getElementById('close-history').addEventListener('click', () => {
+    historyModal.classList.add('hidden');
+});
