@@ -1,3 +1,8 @@
+/**
+ * BILL-BUSTER: POINT. SCAN. SAVE.
+ * Real-time Energy Auditor Logic
+ */
+
 const video = document.getElementById('webcam');
 const statusText = document.getElementById('status');
 const itemName = document.getElementById('item-name');
@@ -7,84 +12,99 @@ const resultsArea = document.getElementById('results');
 let model = undefined;
 let isProcessing = false;
 
-// 1. Initialize the AI Brain
-async function init() {
+// 1. Initialize the AI Brain (COCO-SSD)
+async function initBillBuster() {
     try {
         statusText.innerText = "Buster is waking up...";
+        // Load the pre-trained object detection model
         model = await cocoSsd.load();
         statusText.innerText = "AI Ready! Point at an appliance.";
         startCamera();
     } catch (error) {
-        statusText.innerText = "Error: Check camera permissions.";
-        console.error(error);
+        statusText.innerText = "Error: Camera access denied.";
+        console.error("Initialization failed:", error);
     }
 }
 
-// 2. Optimized Camera Setup
+// 2. Setup Camera with Mobile Optimization
 async function startCamera() {
     const constraints = {
         video: { 
             facingMode: "environment",
-            width: { ideal: 640 }, // Lower resolution = much faster AI
+            width: { ideal: 640 }, // Lower res = Faster AI processing
             height: { ideal: 480 } 
         },
         audio: false
     };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    video.onloadedmetadata = () => {
-        video.play();
-        scanLoop();
-    };
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = stream;
+        video.onloadedmetadata = () => {
+            video.play();
+            scanFrame(); // Start the scanning loop
+        };
+    } catch (err) {
+        statusText.innerText = "Webcam not found or blocked.";
+    }
 }
 
-// 3. The "Lightweight" Scan Loop
-async function scanLoop() {
+// 3. The Scanning Loop (Throttled for Speed)
+async function scanFrame() {
+    // Only run if the model is ready and we aren't already busy processing a frame
     if (model && !isProcessing) {
         isProcessing = true;
         
         const predictions = await model.detect(video);
         
-        // Only care about high-confidence matches (> 60%)
+        // Find the best match with over 60% confidence
         const bestMatch = predictions.find(p => p.score > 0.60);
         
         if (bestMatch) {
-            updateBusterUI(bestMatch.class);
+            calculateAndDisplay(bestMatch.class);
         }
         
         isProcessing = false;
     }
     
-    // Scan every 600ms (balanced for speed vs battery)
+    // SLOW DOWN: We scan every 600ms to prevent the phone from overheating
     setTimeout(() => {
-        requestAnimationFrame(scanLoop);
+        requestAnimationFrame(scanFrame);
     }, 600);
 }
 
-// 4. Rupee Calculation Logic
-function updateBusterUI(foundObject) {
-    // Average Wattage & usage hours in Indian households
+// 4. Indian Energy Calculation Logic
+function calculateAndDisplay(foundObject) {
+    // Energy Database (Avg Wattage for Indian Homes)
     const applianceDB = {
-        "tv": { watts: 120, hours: 6 },
-        "laptop": { watts: 65, hours: 8 },
-        "refrigerator": { watts: 250, hours: 24 },
-        "microwave": { watts: 1200, hours: 0.5 },
-        "cell phone": { watts: 10, hours: 4 },
-        "oven": { watts: 2000, hours: 1 },
-        "toaster": { watts: 800, hours: 0.2 }
+        "tv": { watts: 120, hours: 6, label: "Television" },
+        "laptop": { watts: 65, hours: 8, label: "Laptop" },
+        "refrigerator": { watts: 250, hours: 24, label: "Refrigerator" },
+        "microwave": { watts: 1200, hours: 0.5, label: "Microwave Oven" },
+        "cell phone": { watts: 10, hours: 4, label: "Mobile Charger" },
+        "oven": { watts: 2000, hours: 1, label: "Electric Oven" },
+        "toaster": { watts: 800, hours: 0.2, label: "Toaster" }
     };
 
-    const ratePerUnit = 7; // Average ₹7 per kWh
+    const ratePerUnit = 7; // Average ₹7 per kWh in India
 
     if (applianceDB[foundObject]) {
         const item = applianceDB[foundObject];
+        
+        // Formula: (Watts * Hours / 1000) = Units (kWh)
         const dailyKwh = (item.watts * item.hours) / 1000;
-        const monthlyCost = Math.round(dailyKwh * 30 * ratePerUnit);
+        const monthlyUnits = dailyKwh * 30;
+        const monthlyCost = Math.round(monthlyUnits * ratePerUnit);
 
+        // Update UI
         resultsArea.classList.remove('hidden');
-        itemName.innerText = `TARGET: ${foundObject.toUpperCase()}`;
+        itemName.innerText = `TARGET: ${item.label.toUpperCase()}`;
         itemCost.innerText = `₹${monthlyCost} / month`;
+        
+        // Optional: Change status to show detection
+        statusText.innerText = "Appliance Busted!";
     }
 }
 
-init();
+// Kick off the app
+initBillBuster();
