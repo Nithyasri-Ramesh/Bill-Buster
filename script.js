@@ -5,59 +5,86 @@ const itemCost = document.getElementById('item-cost');
 const resultsArea = document.getElementById('results');
 
 let model = undefined;
+let isProcessing = false;
 
-// 1. Load the AI Model
-async function loadModel() {
-    statusText.innerText = "Loading AI Brain...";
-    model = await cocoSsd.load();
-    statusText.innerText = "AI Ready! Point at an appliance.";
-    startScanner();
-}
-
-// 2. Start the Video Stream
-async function startScanner() {
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // Use back camera
-        audio: false
-    });
-    video.srcObject = stream;
-    video.addEventListener('loadeddata', predictLoop);
-}
-
-// 3. The Recognition Loop
-async function predictLoop() {
-    const predictions = await model.detect(video);
-    
-    if (predictions.length > 0) {
-        const topResult = predictions[0].class;
-        updateHUD(topResult);
+// 1. Initialize the AI Brain
+async function init() {
+    try {
+        statusText.innerText = "Buster is waking up...";
+        model = await cocoSsd.load();
+        statusText.innerText = "AI Ready! Point at an appliance.";
+        startCamera();
+    } catch (error) {
+        statusText.innerText = "Error: Check camera permissions.";
+        console.error(error);
     }
-
-    // Keep the loop running
-    window.requestAnimationFrame(predictLoop);
 }
 
-// 4. The "Buster" Calculation
-function updateHUD(objectFound) {
-    // Basic energy lookup table
-    const energyData = {
-        "tv": { watts: 150, hours: 5 },
-        "laptop": { watts: 60, hours: 8 },
-        "refrigerator": { watts: 200, hours: 24 },
-        "oven": { watts: 2400, hours: 1 },
-        "microwave": { watts: 1000, hours: 0.5 }
+// 2. Optimized Camera Setup
+async function startCamera() {
+    const constraints = {
+        video: { 
+            facingMode: "environment",
+            width: { ideal: 640 }, // Lower resolution = much faster AI
+            height: { ideal: 480 } 
+        },
+        audio: false
+    };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    video.onloadedmetadata = () => {
+        video.play();
+        scanLoop();
+    };
+}
+
+// 3. The "Lightweight" Scan Loop
+async function scanLoop() {
+    if (model && !isProcessing) {
+        isProcessing = true;
+        
+        const predictions = await model.detect(video);
+        
+        // Only care about high-confidence matches (> 60%)
+        const bestMatch = predictions.find(p => p.score > 0.60);
+        
+        if (bestMatch) {
+            updateBusterUI(bestMatch.class);
+        }
+        
+        isProcessing = false;
+    }
+    
+    // Scan every 600ms (balanced for speed vs battery)
+    setTimeout(() => {
+        requestAnimationFrame(scanLoop);
+    }, 600);
+}
+
+// 4. Rupee Calculation Logic
+function updateBusterUI(foundObject) {
+    // Average Wattage & usage hours in Indian households
+    const applianceDB = {
+        "tv": { watts: 120, hours: 6 },
+        "laptop": { watts: 65, hours: 8 },
+        "refrigerator": { watts: 250, hours: 24 },
+        "microwave": { watts: 1200, hours: 0.5 },
+        "cell phone": { watts: 10, hours: 4 },
+        "oven": { watts: 2000, hours: 1 },
+        "toaster": { watts: 800, hours: 0.2 }
     };
 
-    if (energyData[objectFound]) {
-        const data = energyData[objectFound];
-        const kwhPerDay = (data.watts * data.hours) / 1000;
-        const costPerMonth = (kwhPerDay * 30 * 0.28).toFixed(2); // Avg $0.28/kWh
+    const ratePerUnit = 7; // Average ₹7 per kWh
+
+    if (applianceDB[foundObject]) {
+        const item = applianceDB[foundObject];
+        const dailyKwh = (item.watts * item.hours) / 1000;
+        const monthlyCost = Math.round(dailyKwh * 30 * ratePerUnit);
 
         resultsArea.classList.remove('hidden');
-        itemName.innerText = objectFound.toUpperCase();
-        itemCost.innerText = `$${costPerMonth} / mo`;
+        itemName.innerText = `TARGET: ${foundObject.toUpperCase()}`;
+        itemCost.innerText = `₹${monthlyCost} / month`;
     }
 }
 
-// Start the app
-loadModel();
+init();
