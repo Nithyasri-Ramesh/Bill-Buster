@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill-Buster | Point. Scan. Save.</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+</head>
+<body>
+
+    <div id="app-container">
+        <video id="webcam" autoplay playsinline muted></video>
+
+        <div id="hud">
+            <div class="scanner-box">
+                <div class="scan-line"></div>
+            </div>
+            
+            <div class="info-panel">
+                <h1 class="brand">BILL-BUSTER</h1>
+                <p id="status">Waking up the AI...</p>
+                <div id="results" class="hidden">
+                    <h2 id="item-name">Searching...</h2>
+                    <p id="item-cost">$0.00 / year</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
